@@ -436,6 +436,16 @@ test("worker recovery preserves downloads when metadata cannot be inspected", as
   assert.deepEqual(JSON.parse(await readFile(journal, "utf8")), outcome);
 });
 
+test("listing download failures tolerates an outcome disappearing before it is read", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "openfuse-download-list-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const outcomes = join(directory, "download-outcomes");
+  await mkdir(outcomes);
+  // Model the ENOENT from a successful transfer removing its listed journal.
+  await symlink("finished", join(outcomes, "gone.json"));
+  assert.deepEqual(await readDownloadFailures(directory), []);
+});
+
 test("worker recovery reconciles published downloads and transfers without files", async (t) => {
   for (const published of [false, true]) {
     await t.test(
