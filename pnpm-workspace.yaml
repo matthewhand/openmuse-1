@@ -16,6 +16,12 @@ minimumReleaseAgeExclude:
 
 overrides:
   'image-size': '2.0.4'
+  '@azure/msal-node@>=5.0.0 <7.1.0': '7.2.2'
+  '@graphql-tools/utils@>=10.10.1 <12.0.2': '12.1.0'
+  'graphql-scalars@>=1.24.1 <2.0.1': '2.0.1'
+  'undici@<6.29.1': '6.29.1'
+  'e2b>undici8': 'npm:undici@8.12.2'
+  'postcss@>=8 <8.5.18': '8.5.33'
 
 patchedDependencies:
   metro@0.83.3: patches/metro@0.83.3.patch
