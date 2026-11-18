@@ -1,6 +1,6 @@
-# OpenMuse browser worker
+# OpenFuse browser worker
 
-An independent Node/Playwright service for the OpenMuse server. There is no OpenBot dependency. The server owns app authentication and user ownership; this worker accepts requests only from a trusted server holding `WORKER_TOKEN`.
+An independent Node/Playwright service for the OpenFuse server. There is no OpenBot dependency. The server owns app authentication and user ownership; this worker accepts requests only from a trusted server holding `WORKER_TOKEN`.
 
 ## Run
 
@@ -79,7 +79,11 @@ node apps/worker/tests/run-docker.mjs
 node --experimental-strip-types --test apps/worker/tests/lifecycle.test.ts
 ```
 
-The Docker test checks authentication, public page navigation, PNG dimensions, console input, redirect blocking, a real PDF download, worker restart, and profile/localStorage persistence. Public fixtures require internet access. The test's separate Chromium process seeds localStorage in its own disposable profile; the production API exposes no JavaScript evaluation endpoint.
+The local lifecycle test serves controlled HTTP pages on loopback. Its injected HTTP transport maps a public-IP URL to those pages after the real worker and proxy destination checks; it does not need external DNS or websites. It checks exact page reads, truncation boundaries, private redirect rejection, failed profile cleanup, and profile/localStorage restoration through real Chromium.
+
+The Docker test uses the same HTTP fixture and worker API assertions as the local process-restart test. It checks authentication, exact page reads, PNG dimensions, console input, private redirects, byte-identical PDF downloads, rejected downloads, container restart, and actual localStorage recovery without reseeding. The runner builds the normal image, mounts the tests read-only, and publishes both the worker API and fixture diagnostics on random loopback host ports. Fixtures run inside the disposable container; image builds still require registry access.
+
+The fixture entrypoint is test-only and is not copied into the production image. It injects the existing browser manager and proxy transport, without adding a production evaluation endpoint or private-network allowance. These fixtures cover HTTP; the default proxy's HTTP/CONNECT private-destination rejection remains covered by the repository tests, but successful HTTPS navigation is not covered by these fixture suites.
 
 ## Local development
 
@@ -90,4 +94,4 @@ pnpm --dir apps/worker exec playwright install chromium
 pnpm dev:browser
 ```
 
-The local worker binds to `127.0.0.1:8790` and stores profiles in `.openmuse/browser-profiles` by default. Docker sets `WORKER_HOST=0.0.0.0` inside its container; Compose publishes only the loopback host port. `WORKER_DATA_DIR` selects another private profile directory.
+The local worker binds to `127.0.0.1:8790` and stores profiles in `.openfuse/browser-profiles` by default. Docker sets `WORKER_HOST=0.0.0.0` inside its container; Compose publishes only the loopback host port. `WORKER_DATA_DIR` selects another private profile directory.

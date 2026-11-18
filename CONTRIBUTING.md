@@ -1,6 +1,6 @@
-# Contributing to OpenMuse
+# Contributing to OpenFuse
 
-OpenMuse is an MIT-licensed alpha. Contributions should make delegated work reliable and visible, with honest connector status and useful native interactions.
+OpenFuse is an MIT-licensed alpha. Contributions should make delegated work reliable and visible, with honest connector status and useful native interactions.
 
 ## Local development
 
@@ -9,7 +9,7 @@ OpenMuse is an MIT-licensed alpha. Contributions should make delegated work reli
 3. Run `pnpm dev` and, in another terminal, `pnpm dev:web`.
 4. Use the fictional sample workspace for development and recordings. See [native setup](apps/mobile/README.md) for simulator/emulator builds.
 
-Never commit `.env`, `.openmuse`, browser profiles, credentials, or personal documents. Live provider testing is optional for ordinary contributions; state exactly which paths you tested.
+Never commit `.env`, `.openfuse`, browser profiles, credentials, or personal documents. Live provider testing is optional for ordinary contributions; state exactly which paths you tested.
 
 ## Checks before a pull request
 
@@ -33,7 +33,7 @@ pnpm test:browser
 pnpm --dir apps/worker test:docker
 ```
 
-Browser integration checks use public fixture websites and disposable profiles. They never use your saved browser sessions. CI runs lint, types, tests, platform exports, Chromium lifecycle, and the disposable browser-container suite.
+Both browser suites use controlled HTTP fixtures through the real worker and proxy URL checks, with disposable profiles instead of your saved sessions. The container runner builds the normal worker image and mounts its test entrypoint read-only. Building the image and installing dependencies require registry access; fixture navigation and downloads do not need external DNS or websites. CI runs lint, types, tests, platform exports, Chromium lifecycle, and the disposable browser-container suite.
 
 ## Change guidelines
 

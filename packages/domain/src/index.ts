@@ -38,6 +38,15 @@ export interface CalendarEvent {
   description: string;
   attendees: string[];
 }
+export const calendarRangeSchema = z
+  .object({
+    timeMin: z.iso.datetime({ offset: true }),
+    timeMax: z.iso.datetime({ offset: true }),
+  })
+  .refine(({ timeMin, timeMax }) => {
+    const duration = Date.parse(timeMax) - Date.parse(timeMin);
+    return duration > 0 && duration <= 366 * 86400000;
+  }, "Calendar range must end after it starts and span at most 366 days");
 export interface Artifact {
   id: string;
   name: string;
@@ -59,17 +68,20 @@ export interface BrowserSession {
   previewUrl?: string;
   consoleUrl?: string;
 }
+// Invisible characters that reorder or hide text without showing on the review card. Joiners and
+// directional marks stay because emoji sequences, Persian and Arabic text depend on them.
+const hiddenText = /[\u200B\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF\u{E0000}-\u{E007F}]/gu;
+const visibleText = () => z.string().overwrite((text) => text.replace(hiddenText, ""));
 export const emailDraftSchema = z.object({
   to: z.array(z.email()).min(1).max(50),
   cc: z.array(z.email()).max(50).default([]),
   bcc: z.array(z.email()).max(50).default([]),
-  subject: z
-    .string()
+  subject: visibleText()
     .trim()
     .min(1)
     .max(998)
     .refine((s) => !/[\r\n]/.test(s), "Subject must be a single line"),
-  body: z.string().min(1).max(100000),
+  body: visibleText().min(1).max(100000),
   attachmentIds: z.array(z.string()).max(10).default([]),
   threadId: z.string().optional(),
   replyToMessageId: z.string().optional(),
@@ -77,13 +89,13 @@ export const emailDraftSchema = z.object({
 export const eventDraftSchema = z
   .object({
     calendarId: z.string().default("primary"),
-    title: z.string().trim().min(1).max(500),
+    title: visibleText().trim().min(1).max(500),
     start: z.string().min(1),
     end: z.string().min(1),
     allDay: z.boolean().default(false),
     timeZone: z.string().default("America/Los_Angeles"),
-    location: z.string().max(2000).default(""),
-    description: z.string().max(10000).default(""),
+    location: visibleText().max(2000).default(""),
+    description: visibleText().max(10000).default(""),
     attendees: z.array(z.email()).max(50).default([]),
   })
   .superRefine((value, ctx) => {
@@ -94,17 +106,20 @@ export const eventDraftSchema = z
     ) {
       ctx.addIssue({ code: "custom", message: "End must be after a valid start", path: ["end"] });
     }
-    const dateOnly = /^\d{4}-\d{2}-\d{2}$/;
-    const timed = /^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/;
-    if (
-      !(value.allDay ? dateOnly : timed).test(value.start) ||
-      !(value.allDay ? dateOnly : timed).test(value.end)
-    ) {
+    const dateOnly = z.iso.date();
+    const timed = z.union([
+      z.iso.datetime({ offset: true }),
+      z.iso.datetime({ offset: true, precision: -1 }),
+    ]);
+    // Keep minute precision while validating the clock time as well as the date.
+    const validTimestamp = (timestamp: string) =>
+      value.allDay ? dateOnly.safeParse(timestamp).success : timed.safeParse(timestamp).success;
+    if (!validTimestamp(value.start) || !validTimestamp(value.end)) {
       ctx.addIssue({
         code: "custom",
         message: value.allDay
-          ? "All-day events need date-only values"
-          : "Timed events need an explicit offset",
+          ? "All-day events need valid date-only values"
+          : "Timed events need valid date-times with an explicit offset",
         path: ["start"],
       });
     }

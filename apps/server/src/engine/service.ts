@@ -31,16 +31,27 @@ import type { Store } from "../db.ts";
 import { AppError } from "../errors.ts";
 import type { Files } from "../files.ts";
 import { backgroundFailure } from "../log.ts";
+import { SearchService } from "../search.ts";
 import type { WorkspaceService } from "../workspace.ts";
 import { analyzeSpending } from "./finance.ts";
-import { executeModelTask } from "./model.ts";
+import { executeModelTask, taskAnswers } from "./model.ts";
+import {
+  countPageDiff,
+  describePageDiff,
+  diffPage,
+  pageLines,
+  withoutRelativeTimes,
+} from "./page-diff.ts";
 import { LostLeaseError, type TaskContext, TaskWorker } from "./worker.ts";
 
 const hash = (text: string) => createHash("sha256").update(text).digest("hex");
+/** A change watch's last saved page: its hash, relative-time-free fingerprint and lines. */
+type MonitorPage = { id: string; hash?: string; timelessHash?: string; lines: string[] };
 const date = () => new Date().toISOString();
 const terminal = new Set(["succeeded", "failed", "cancelled"]);
 export class AgentService {
   readonly worker: TaskWorker;
+  readonly search: SearchService;
   private maintenance?: ReturnType<typeof setInterval>;
   private refreshing = false;
   constructor(
@@ -52,6 +63,7 @@ export class AgentService {
     readonly browser: BrowserService,
     readonly computer: ComputerService = new ComputerService(db, config),
   ) {
+    this.search = new SearchService(db);
     this.worker = new TaskWorker(db, (owner, task, context) => this.execute(owner, task, context), {
       settled: (owner, task) => this.publishOutcome(owner, task),
     });
@@ -117,7 +129,7 @@ export class AgentService {
   async ensure(owner: string) {
     await this.db.insertIfAbsent(owner, "agent-settings", {
       id: "identity",
-      name: "OpenMuse",
+      name: "OpenFuse",
       tone: "warm",
     });
   }
@@ -143,7 +155,7 @@ export class AgentService {
       memories,
       artifacts,
       notifications,
-      identity: identity ?? { name: "OpenMuse", tone: "warm" },
+      identity: identity ?? { name: "OpenFuse", tone: "warm" },
       worker: {
         running:
           this.worker.running ||
@@ -159,31 +171,35 @@ export class AgentService {
   }
   async detail(owner: string, id: string) {
     const task = await this.getTask(owner, id);
-    const files = (await this.db.list<Artifact>(owner, "files")).filter((file) =>
-      task.artifactIds.includes(file.id),
+    // Scoped by the ids the task already names, so a long-lived workspace does not read
+    // every file, browser, event and artifact it has ever stored to show one task.
+    const browserIds = [task.state.browserId, task.state.sessionId].filter(
+      (value): value is string => typeof value === "string" && value.length > 0,
     );
-    const browsers = (await this.db.list<BrowserSession>(owner, "browsers")).filter((browser) =>
-      [task.state.browserId, task.state.sessionId].includes(browser.id),
-    );
+    const [files, browsers, events, artifacts] = await Promise.all([
+      this.db.listByIds<Artifact>(owner, "files", task.artifactIds ?? []),
+      this.db.listByIds<BrowserSession>(owner, "browsers", browserIds),
+      this.db.listByTaskId<RunEvent>(owner, "run-events", id),
+      this.db.listByTaskId<AgentArtifact>(owner, "agent-artifacts", id),
+    ]);
     return {
       task,
       files: files.map((file) => this.files.signed(owner, file)),
       browsers: browsers.map((browser) => this.browser.decorate(owner, browser)),
-      events: (await this.db.list<RunEvent>(owner, "run-events"))
-        .filter((e) => e.taskId === id)
-        .sort((a, b) => a.date.localeCompare(b.date)),
-      artifacts: (await this.db.list<AgentArtifact>(owner, "agent-artifacts")).filter(
-        (a) => a.taskId === id,
-      ),
+      events: events.sort((a, b) => a.date.localeCompare(b.date)),
+      artifacts,
     };
   }
   async createTask(owner: string, raw: unknown, idempotencyKey?: string, held = false) {
     const input = createTaskSchema.parse(raw);
-    if (input.goalId && !(await this.db.get(owner, "goals", input.goalId)))
-      throw new AppError("Goal not found", 404);
     const id = idempotencyKey ? hash(`task:${idempotencyKey}`) : randomUUID();
     const existing = await this.db.get<AgentTask>(owner, "tasks", id);
     if (existing) return existing;
+    if (input.milestoneId && !input.goalId) throw new AppError("A milestone requires a goal", 422);
+    const goal = input.goalId ? await this.db.get<Goal>(owner, "goals", input.goalId) : null;
+    if (input.goalId && !goal) throw new AppError("Goal not found", 404);
+    if (input.milestoneId && !goal?.milestones.some((m) => m.id === input.milestoneId))
+      throw new AppError("Milestone not found in this goal", 404);
     if (
       (await this.db.list<AgentTask>(owner, "tasks")).filter((t) => !terminal.has(t.status))
         .length >= 100
@@ -209,7 +225,8 @@ export class AgentService {
       prompt: input.prompt,
       kind: input.kind,
       goalId: input.goalId,
-      status: held ? "paused" : "queued",
+      milestoneId: input.milestoneId,
+      status: held || goal?.status === "paused" ? "paused" : "queued",
       plan: titles.map((title, i) => ({ id: String(i), title, status: "pending" })),
       evidence: [],
       input: input.input,
@@ -237,6 +254,20 @@ export class AgentService {
     if (action === "resume" && task.status !== "paused")
       throw new AppError("Only paused tasks can be resumed", 409);
     if (action === "pause" && (terminal.has(task.status) || task.status === "paused")) return task;
+    if (task.kind === "monitor" && action === "resume") {
+      // Both UI entry points must activate the monitor before a worker can claim its task.
+      await this.controlMonitor(owner, String(task.input.monitorId), "resume");
+      const resumed = await this.getTask(owner, id);
+      await this.db.put(owner, "run-events", {
+        id: randomUUID(),
+        taskId: id,
+        kind: "status",
+        date: date(),
+        title: `Task ${resumed.status}`,
+        detail: "Changed by you",
+      });
+      return resumed;
+    }
     const status =
       action === "cancel"
         ? "cancelled"
@@ -270,9 +301,6 @@ export class AgentService {
             : action === "pause"
               ? "Paused. Resume when you're ready."
               : "",
-        ...(task.kind === "monitor" && action === "resume"
-          ? { state: { ...task.state, failures: 0, notice: null, resumingMonitor: false } }
-          : {}),
       },
     );
     if (!updated) throw new AppError("Task changed; refresh and try again", 409);
@@ -314,6 +342,12 @@ export class AgentService {
     const task = await this.getTask(owner, id);
     if (task.status !== "waiting_input")
       throw new AppError("This task is not waiting for input", 409);
+    // Each run starts fresh, so keep every reply with its question, not just the latest.
+    const { answer: _latest, ...state } = task.state;
+    const answers = [
+      ...taskAnswers(task.state),
+      { ...(task.question ? { question: task.question } : {}), answer },
+    ];
     const next = await this.db.compareAndSwap<AgentTask>(
       owner,
       "tasks",
@@ -323,7 +357,7 @@ export class AgentService {
         status: "queued",
         question: null,
         input: { ...task.input, ...(fields ? { fields } : {}) },
-        state: { ...task.state, answer },
+        state: { ...state, answers },
         updatedAt: date(),
       },
     );
@@ -349,13 +383,17 @@ export class AgentService {
     id: string,
     patch: { status?: Goal["status"]; milestones?: Goal["milestones"] },
   ) {
-    const goal = await this.db.get<Goal>(owner, "goals", id);
-    if (!goal) throw new AppError("Goal not found", 404);
-    const saved = await this.db.put(owner, "goals", { ...goal, ...patch });
+    const saved = await this.db.compareAndSwap<Goal>(owner, "goals", id, {}, patch);
+    if (!saved) throw new AppError("Goal not found", 404);
     if (patch.status === "paused")
-      for (const task of await this.db.list<AgentTask>(owner, "tasks"))
-        if (task.goalId === id && !terminal.has(task.status) && task.status !== "paused")
+      for (const task of await this.db.listByGoalId<AgentTask>(owner, "tasks", id))
+        if (!terminal.has(task.status) && task.status !== "paused")
           await this.control(owner, task.id, "pause");
+    return saved;
+  }
+  async setMilestoneDone(owner: string, goalId: string, milestoneId: string, done: boolean) {
+    const saved = await this.db.setMilestoneDone<Goal>(owner, goalId, milestoneId, done);
+    if (!saved) throw new AppError("Goal or milestone not found", 404);
     return saved;
   }
   async createMonitor(owner: string, raw: unknown, idempotencyKey?: string) {
@@ -434,14 +472,16 @@ export class AgentService {
       throw new AppError("Create a new watch to restart this stopped monitor", 409);
     if (action === "pause" || action === "stop") {
       const status = action === "pause" ? "paused" : "stopped";
-      const saved = await this.db.put(owner, "monitors", {
-        ...monitor,
-        status,
-        nextCheckAt: date(),
-      });
+      const saved = await this.db.compareAndSwap<Monitor>(
+        owner,
+        "monitors",
+        id,
+        {},
+        { status, nextCheckAt: date() },
+      );
       const task = await this.getTask(owner, monitor.taskId);
       await this.control(owner, task.id, action === "pause" ? "pause" : "cancel");
-      return saved;
+      return saved ?? monitor;
     }
     let monitorStatus = monitor.status;
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -524,8 +564,8 @@ export class AgentService {
       w.mail.filter((mail) => /^Sent\b/i.test(mail.label)).map((mail) => mail.id),
     );
     const completedSources = new Set(
-      (await this.db.list<AgentTask>(owner, "tasks"))
-        .filter((task) => task.status === "succeeded" && typeof task.input.messageId === "string")
+      (await this.db.listByStatus<AgentTask>(owner, "tasks", "succeeded"))
+        .filter((task) => typeof task.input.messageId === "string")
         .map((task) => `${task.kind}:${task.input.messageId}`),
     );
     const obsolete = (kind: AgentTask["kind"], messageId: unknown) =>
@@ -533,8 +573,8 @@ export class AgentService {
       (sentIds.has(messageId) || completedSources.has(`${kind}:${messageId}`));
     // Retire earlier suggestions as well as preventing new duplicates. A concurrent
     // acceptance wins its own compare-and-swap and is never overwritten here.
-    for (const idea of await this.db.list<Idea>(owner, "ideas"))
-      if (idea.status === "new" && obsolete(idea.kind, idea.input.messageId))
+    for (const idea of await this.db.listByStatus<Idea>(owner, "ideas", "new"))
+      if (obsolete(idea.kind, idea.input.messageId))
         await this.db.compareAndSwap(
           owner,
           "ideas",
@@ -583,8 +623,8 @@ export class AgentService {
         createdAt: date(),
       } satisfies Idea);
     }
-    for (const goal of await this.db.list<Goal>(owner, "goals"))
-      if (goal.status === "active" && !goal.milestones.length) {
+    for (const goal of await this.db.listByStatus<Goal>(owner, "goals", "active"))
+      if (!goal.milestones.length) {
         const id = hash(`goal:${goal.id}:${goal.description}`);
         await this.db.insertIfAbsent(owner, "ideas", {
           id,
@@ -616,6 +656,28 @@ export class AgentService {
         { status: "dismissed" },
       );
     if (idea.status === "new") {
+      // A task already working on (or done with) the same email is opened instead of copied.
+      const { kind, input } = idea;
+      const handling =
+        typeof input.messageId === "string"
+          ? (await this.db.list<AgentTask>(owner, "tasks")).find(
+              (task) =>
+                task.kind === kind &&
+                task.input.messageId === input.messageId &&
+                task.status !== "failed" &&
+                task.status !== "cancelled",
+            )
+          : undefined;
+      if (handling)
+        return (
+          (await this.db.compareAndSwap<Idea>(
+            owner,
+            "ideas",
+            id,
+            { status: "new" },
+            { status: "accepted", taskId: handling.id },
+          )) ?? this.db.get<Idea>(owner, "ideas", id)
+        );
       const claimed = await this.db.compareAndSwap<Idea>(
         owner,
         "ideas",
@@ -630,11 +692,17 @@ export class AgentService {
       idea = claimed ?? (await this.db.get<Idea>(owner, "ideas", id));
       if (idea?.status !== "accepted") return idea;
     }
-    const goal = await this.createGoal(
-      owner,
-      { title: idea.title, description: idea.reason },
-      hash(`idea-goal:${id}`),
-    );
+    if (idea.taskId && (await this.db.get(owner, "tasks", idea.taskId))) return idea;
+    const goalId =
+      typeof idea.input.goalId === "string"
+        ? idea.input.goalId
+        : (
+            await this.createGoal(
+              owner,
+              { title: idea.title, description: idea.reason },
+              hash(`idea-goal:${id}`),
+            )
+          ).id;
     const task = await this.createTask(
       owner,
       {
@@ -642,7 +710,7 @@ export class AgentService {
         prompt: idea.prompt,
         kind: idea.kind,
         input: idea.input,
-        goalId: goal.id,
+        goalId,
       },
       `idea:${id}`,
     );
@@ -714,7 +782,11 @@ export class AgentService {
     try {
       await context.checkpoint({ actionId: proposal.id });
     } catch (error) {
-      if (proposal.status === "awaiting_review")
+      const current = await this.db.get<AgentTask>(owner, "tasks", task.id);
+      if (
+        proposal.status === "awaiting_review" &&
+        (current?.status === "paused" || current?.status === "cancelled")
+      )
         await this.actions.decide(owner, proposal.id, proposal.hash, "deny");
       throw error;
     }
@@ -843,7 +915,7 @@ export class AgentService {
         task.id,
         `task-done:${task.id}`,
       );
-      if (task.goalId) {
+      if (task.goalId && !task.milestoneId) {
         for (let attempt = 0; attempt < 8; attempt++) {
           const goal = await this.db.get<Goal>(owner, "goals", task.goalId);
           if (!goal || goal.milestones.some((m) => m.id === task.id)) break;
@@ -956,7 +1028,7 @@ export class AgentService {
     let filledId = typeof task.state.filledId === "string" ? task.state.filledId : undefined;
     if (!filledId) {
       await ctx.guard();
-      const filled = await this.files.fill(owner, source.fileId, fields);
+      const filled = await this.files.fill(owner, source.fileId, fields, `document:${task.id}`);
       filledId = filled.id;
       task = await ctx.checkpoint({
         state: { ...task.state, source, filledId },
@@ -1017,20 +1089,45 @@ export class AgentService {
         owner,
         monitor.url,
         typeof task.state.sessionId === "string" ? task.state.sessionId : undefined,
+        ctx.signal,
       );
     }
     const text = observation.text.replace(/\s+/g, " ").trim();
     const currentHash = hash(text);
     const previousHash =
       typeof task.state.lastHash === "string" ? task.state.lastHash : monitor.lastHash;
+    // Collapse whitespace in the watched text the same way as in the page text, so a
+    // trailing space from a phone keyboard or a line break in the value still matches.
+    const wanted = monitor.value.replace(/\s+/g, " ").trim().toLowerCase();
     const matched =
       monitor.condition === "change"
         ? Boolean(previousHash && previousHash !== currentHash)
         : monitor.condition === "contains"
-          ? text.toLowerCase().includes(monitor.value.toLowerCase())
+          ? text.toLowerCase().includes(wanted)
           : this.matchesPrice(text, Number(monitor.value));
     const previouslyMatched = Boolean(task.state.matched);
-    const shouldNotify = matched && (monitor.condition === "change" || !previouslyMatched);
+    // For change watches, keep the page lines and a relative-time-free fingerprint of the whole text.
+    const change = monitor.condition === "change";
+    const lines = change ? pageLines(observation.text) : [];
+    const timelessHash = change ? hash(withoutRelativeTimes(text)) : undefined;
+    const savedPage =
+      matched && change
+        ? await this.db.get<MonitorPage>(owner, "monitor-pages", monitor.id)
+        : undefined;
+    // Saved lines can run ahead of a lost task outcome; use them only for the committed baseline.
+    const baseline = savedPage?.hash === previousHash ? savedPage : undefined;
+    // Only relative times changed anywhere on the page ("3 minutes ago"): keep watching quietly.
+    const quiet = Boolean(baseline?.timelessHash && baseline.timelessHash === timelessHash);
+    const shouldNotify =
+      matched && !quiet && (monitor.condition === "change" || !previouslyMatched);
+    const diff = baseline && shouldNotify ? diffPage(baseline.lines, lines) : undefined;
+    // Empty when the change is past the saved lines; the alert then quotes the page instead.
+    const changes = diff ? describePageDiff(diff) : "";
+    // A notification-worthy observation is a new event, even when the page text is
+    // identical to an earlier one (a change back to a seen state, or a condition that
+    // cleared and reappeared). Commit its sequence with the outcome so publication
+    // retries still deduplicate on the same saved notice key.
+    const alertSequence = Number(task.state.alertSequence ?? 0) + (shouldNotify ? 1 : 0);
     const nextCheckAt = new Date(Date.now() + monitor.intervalMinutes * 60000).toISOString();
     await ctx.guard();
     // Worker lease is checked before each publication; monitor control also invalidates that lease.
@@ -1038,7 +1135,7 @@ export class AgentService {
       owner,
       "monitors",
       monitor.id,
-      { status: "active" },
+      { status: "active", checks: monitor.checks },
       {
         checks: monitor.checks + 1,
         lastCheckedAt: date(),
@@ -1049,6 +1146,13 @@ export class AgentService {
       },
     );
     if (!savedMonitor) throw new LostLeaseError();
+    if (change)
+      await this.db.put(owner, "monitor-pages", {
+        id: monitor.id,
+        hash: currentHash,
+        timelessHash,
+        lines,
+      });
     await ctx.event(
       "observation",
       previousHash ? "Checked for changes" : "Saved the first observation",
@@ -1056,13 +1160,16 @@ export class AgentService {
     );
     if (shouldNotify) {
       await ctx.guard();
-      await ctx.event("result", "A meaningful change was found", text.slice(0, 500));
+      await ctx.event("result", "A meaningful change was found", changes || text.slice(0, 500));
     }
+    const count = diff ? countPageDiff(diff) : "";
     return {
       status: "scheduled",
       nextRunAt: nextCheckAt,
       result: shouldNotify
-        ? "Change found. A notification is ready."
+        ? count
+          ? `Change found: ${count}. A notification is ready.`
+          : "Change found. A notification is ready."
         : "Watching. I'll check again on schedule.",
       state: {
         ...task.state,
@@ -1070,12 +1177,15 @@ export class AgentService {
         lastHash: currentHash,
         resumingMonitor: false,
         matched,
+        alertSequence,
         failures: 0,
         notice: shouldNotify
           ? {
               title: monitor.title,
-              body: `Condition met at ${observation.url}: ${text.slice(0, 240)}`,
-              key: `monitor:${monitor.id}:${currentHash}`,
+              body: changes
+                ? `Changed at ${observation.url}\n${changes}`
+                : `Condition met at ${observation.url}: ${text.slice(0, 240)}`,
+              key: `monitor:${monitor.id}:${alertSequence}:${currentHash}`,
             }
           : null,
       },
@@ -1093,7 +1203,7 @@ export class AgentService {
     };
   }
   private matchesPrice(text: string, threshold: number) {
-    const matches = [...text.matchAll(/(?:\$|USD\s*)(\d+(?:,\d{3})*(?:\.\d{1,2})?)/g)];
+    const matches = [...text.matchAll(/(?:\$|USD)\s*(\d+(?:,\d{3})*(?:\.\d{1,2})?)/g)];
     return matches.some((m) => Number(m[1].replace(/,/g, "")) < threshold);
   }
 }

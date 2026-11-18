@@ -3,6 +3,7 @@ import { type DefaultTreeAdapterMap, parseFragment } from "parse5";
 import { z } from "zod";
 import {
   type CalendarEvent,
+  calendarRangeSchema,
   type EmailDraft,
   type EventDraft,
   emailDraftSchema,
@@ -145,8 +146,9 @@ function headers(part?: GmailPart): Map<string, string> {
   return new Map((part?.headers ?? []).map(({ name, value }) => [name.toLowerCase(), value]));
 }
 function decodeHeader(value: string): string {
+  // RFC 2047: ignore linear whitespace, including folding, between encoded words.
   return value
-    .replace(/(\?=)[ \t]+(?==\?)/g, "$1")
+    .replace(/(\?=)(?:[ \t]|\r\n[ \t])+(?==\?)/g, "$1")
     .replace(
       /=\?([^?]+)\?([bq])\?([^?]*)\?=/gi,
       (original, charset: string, encoding: string, text: string) => {
@@ -162,7 +164,7 @@ function decodeHeader(value: string): string {
                     ),
                   "latin1",
                 );
-          return new TextDecoder(charset).decode(bytes);
+          return new TextDecoder(charset.split("*")[0]).decode(bytes);
         } catch {
           return original;
         }
@@ -186,12 +188,46 @@ function decodeSnippet(value: string): string {
         entity[1].toLowerCase() === "x"
           ? Number.parseInt(entity.slice(2), 16)
           : Number.parseInt(entity.slice(1), 10);
-      return code >= 0 && code <= 0x10ffff ? String.fromCodePoint(code) : original;
+      // Surrogates are not scalar values: fromCodePoint throws on them, and one
+      // such reference in a snippet must not reject the whole message list.
+      const scalar = code >= 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff);
+      return scalar ? String.fromCodePoint(code) : original;
     },
   );
 }
 function addresses(value: string): string[] {
-  return value.match(/[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+/g) ?? [];
+  // Comments may contain addresses, nested comments and escaped parentheses.
+  // Quoted display names treat parentheses literally instead.
+  let uncommented = "";
+  let depth = 0;
+  let quoted = false;
+  let escaped = false;
+  // Encoded words are display text, never mailbox syntax, even if their raw
+  // payload happens to contain an address or parentheses.
+  for (const character of value.replace(/=\?[^?]+\?[bq]\?[^?]*\?=/gi, "")) {
+    if (escaped) {
+      if (!depth) uncommented += character;
+      escaped = false;
+    } else if (character === "\\") {
+      if (!depth) uncommented += character;
+      escaped = true;
+    } else if (!depth && character === '"') {
+      quoted = !quoted;
+      uncommented += character;
+    } else if (!quoted && character === "(") {
+      if (!depth) uncommented += " ";
+      depth++;
+    } else if (depth && character === ")") {
+      depth--;
+    } else if (!depth) uncommented += character;
+  }
+  // A quoted display name may itself contain an e-mail-looking string; only
+  // addresses outside display names count.
+  return (
+    uncommented
+      .replace(/"(?:[^"\\]|\\.)*"\s*(?=<)/g, " ")
+      .match(/[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+/g) ?? []
+  );
 }
 /** Extract text from a parsed HTML tree. Nothing is rendered or fetched. */
 function htmlToPlainText(html: string): string {
@@ -270,6 +306,33 @@ function htmlToPlainText(html: string): string {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
+/** UTF-8 when the declared charset is not one TextDecoder knows (`unknown-8bit`, `utf-7`). */
+function decoderFor(charset: string): TextDecoder {
+  try {
+    return new TextDecoder(charset);
+  } catch {
+    return new TextDecoder();
+  }
+}
+/**
+ * Replace unpaired surrogates with U+FFFD so encodeURIComponent cannot throw "URI
+ * malformed" on a sender-supplied name. (String.prototype.toWellFormed, but the
+ * project targets ES2023.)
+ */
+const wellFormed = (value: string): string =>
+  value.replace(
+    /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g,
+    "\uFFFD",
+  );
+
+function isAttachedPart(part: GmailPart): boolean {
+  return (
+    Boolean(part.filename) ||
+    part.mimeType === "message/rfc822" ||
+    headers(part).get("content-disposition")?.split(";")[0].trim().toLowerCase() === "attachment"
+  );
+}
+
 function mapMessage(message: z.infer<typeof messageSchema>): Mail {
   const metadata = headers(message.payload);
   const plain: string[] = [];
@@ -277,12 +340,20 @@ function mapMessage(message: z.infer<typeof messageSchema>): Mail {
   const attachments: string[] = [];
   const visit = (part: GmailPart, depth: number) => {
     if (depth > 30) throw new Error("Gmail message MIME nesting exceeds the limit");
-    if (part.filename && part.body?.attachmentId)
+    // Attachments carry their own content (or an attached message); never merge
+    // their parts into the parent text. Unattached remote text is hydrated above
+    // and still counts as message text.
+    const attached = isAttachedPart(part);
+    if (attached && part.body?.attachmentId) {
+      const name =
+        part.filename ||
+        (part.mimeType === "message/rfc822" ? "forwarded-message.eml" : "attachment");
       attachments.push(
-        `${message.id}:${part.body.attachmentId}:${encodeURIComponent(part.filename)}`,
+        `${message.id}:${part.body.attachmentId}:${encodeURIComponent(wellFormed(name))}`,
       );
+    }
     if (
-      !part.filename &&
+      !attached &&
       (part.mimeType === "text/plain" || part.mimeType === "text/html") &&
       part.body?.data
     ) {
@@ -290,21 +361,24 @@ function mapMessage(message: z.infer<typeof messageSchema>): Mail {
         headers(part)
           .get("content-type")
           ?.match(/charset=["']?([^;"'\s]+)/i)?.[1] ?? "utf-8";
-      const text = new TextDecoder(charset).decode(decodeBase64url(part.body.data, 1024 * 1024));
+      const text = decoderFor(charset).decode(decodeBase64url(part.body.data, 1024 * 1024));
       if (part.mimeType === "text/plain") plain.push(text);
       else html.push(htmlToPlainText(text));
     }
-    for (const child of part.parts ?? []) visit(child, depth + 1);
+    if (!attached) for (const child of part.parts ?? []) visit(child, depth + 1);
   };
   if (message.payload) visit(message.payload, 0);
-  const from = decodeHeader(metadata.get("from") ?? "");
-  const address = addresses(from)[0] ?? from;
-  const sender = from.includes("<")
+  const rawFrom = metadata.get("from") ?? "";
+  const from = decodeHeader(rawFrom);
+  const address = addresses(rawFrom)[0] ?? from;
+  const displayName = from.includes("<")
     ? from.slice(0, from.indexOf("<")).trim().replace(/^"|"$/g, "")
-    : address;
+    : "";
+  const sender = displayName || address;
   const time = message.internalDate
     ? Number(message.internalDate)
     : Date.parse(metadata.get("date") ?? "");
+  const date = new Date(time);
   const body = plain.length
     ? plain.join("\n\n")
     : html.length
@@ -319,7 +393,7 @@ function mapMessage(message: z.infer<typeof messageSchema>): Mail {
     to: addresses(metadata.get("to") ?? ""),
     subject: decodeHeader(metadata.get("subject") ?? "(No subject)"),
     body,
-    date: Number.isFinite(time) ? new Date(time).toISOString() : "",
+    date: Number.isFinite(date.getTime()) ? date.toISOString() : "",
     unread: message.labelIds.includes("UNREAD"),
     label: message.labelIds.includes("INBOX")
       ? "Inbox"
@@ -438,8 +512,10 @@ export class GoogleClient {
   private async mapMessage(message: z.infer<typeof messageSchema>): Promise<Mail> {
     const hydrate = async (part: GmailPart, depth: number): Promise<void> => {
       if (depth > 30) throw new Error("Gmail message MIME nesting exceeds the limit");
+      // Attached MIME trees are not part of the parent body. Leave their content
+      // lazy, matching the module-level mapMessage visible-text extractor.
+      if (isAttachedPart(part)) return;
       if (
-        !part.filename &&
         (part.mimeType === "text/plain" || part.mimeType === "text/html") &&
         part.body?.data === undefined &&
         part.body?.attachmentId
@@ -481,7 +557,8 @@ export class GoogleClient {
                 id: z.string().min(1),
                 summary: z.string().default("(Untitled calendar)"),
                 summaryOverride: z.string().optional(),
-                timeZone: z.string(),
+                // Google marks the calendar time zone as optional.
+                timeZone: z.string().default("UTC"),
                 accessRole: z.string(),
               }),
             )
@@ -533,7 +610,8 @@ export class GoogleClient {
     const timeZone =
       current.start.timeZone ??
       z
-        .object({ timeZone: z.string().min(1) })
+        // Google marks the calendar time zone as optional.
+        .object({ timeZone: z.string().min(1).default("UTC") })
         .parse(
           await this.request(`${CALENDAR}/users/me/calendarList/${encodeURIComponent(calendarId)}`),
         ).timeZone;
@@ -625,6 +703,11 @@ export class GoogleClient {
 
   /** At most 100 occurrences in a bounded window, beginning at local midnight by default. */
   async listEvents(options: ListEventsOptions = {}): Promise<CalendarEvent[]> {
+    return (await this.listEventsPage(options)).events;
+  }
+
+  /** Retain the provider's completeness marker without fetching additional pages. */
+  async listEventsPage(options: ListEventsOptions = {}) {
     const calendarId = options.calendarId ?? "primary";
     const path = calendarPath(calendarId);
     const midnight = new Date();
@@ -637,9 +720,7 @@ export class GoogleClient {
       options.timeMax ?? new Date(Date.parse(timeMin) + 31 * 24 * 60 * 60 * 1000).toISOString();
     if (!timestamp.safeParse(timeMax).success)
       throw new Error("Invalid calendar timeMax: use a date-time with an explicit offset");
-    const duration = Date.parse(timeMax) - Date.parse(timeMin);
-    if (duration <= 0 || duration > 366 * 24 * 60 * 60 * 1000)
-      throw new Error("Calendar range must end after it starts and span at most 366 days");
+    calendarRangeSchema.parse({ timeMin, timeMax });
     const params = new URLSearchParams({
       maxResults: "100",
       singleEvents: "true",
@@ -648,9 +729,16 @@ export class GoogleClient {
       timeMax,
     });
     const result = z
-      .object({ items: z.array(z.unknown()).default([]), timeZone: z.string().default("UTC") })
+      .object({
+        items: z.array(z.unknown()).default([]),
+        timeZone: z.string().default("UTC"),
+        nextPageToken: z.string().min(1).optional(),
+      })
       .parse(await this.request(`${path}?${params}`));
-    return result.items.slice(0, 100).map((item) => mapEvent(item, calendarId, result.timeZone));
+    return {
+      events: result.items.slice(0, 100).map((item) => mapEvent(item, calendarId, result.timeZone)),
+      truncated: Boolean(result.nextPageToken) || result.items.length > 100,
+    };
   }
 
   async getAttachment(messageId: string, attachmentId: string): Promise<Uint8Array> {
@@ -720,7 +808,7 @@ export class GoogleClient {
       ...(draft.bcc.length ? [`Bcc: ${draft.bcc.join(",\r\n ")}`] : []),
       `Subject: ${encodedSubject(draft.subject)}`,
       `Date: ${new Date().toUTCString()}`,
-      `Message-ID: <${randomUUID()}@openmuse.invalid>`,
+      `Message-ID: <${randomUUID()}@openfuse.invalid>`,
       ...replyHeaders,
       "MIME-Version: 1.0",
     ];
@@ -733,11 +821,11 @@ export class GoogleClient {
     let mime: string;
     if (!attachments.length) mime = [...mimeHeaders, textPart].join("\r\n");
     else {
-      const boundary = `openmuse_${randomUUID()}`;
+      const boundary = `openfuse_${randomUUID()}`;
       const parts = [
         textPart,
         ...attachments.map((attachment) => {
-          const name = encodeURIComponent(attachment.name).replace(
+          const name = encodeURIComponent(wellFormed(attachment.name)).replace(
             /['()*]/g,
             (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
           );

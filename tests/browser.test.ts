@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
-import { mkdir, mkdtemp, rm, truncate, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, truncate, writeFile } from "node:fs/promises";
 import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -158,6 +158,22 @@ test("browser observations reuse an owned profile and reject unowned reads", asy
   assert.equal(fresh.text, read.text);
 });
 
+test("cancelled task-style browser observations stop before a follow-up read", async (t) => {
+  const controller = new AbortController();
+  const calls: string[] = [];
+  const { db, service } = await browserFixture(t, (path, body) => {
+    calls.push(path);
+    controller.abort();
+    return { data: { ...savedSession, id: body.id, url: body.url } };
+  });
+  await assert.rejects(service.observe("owner", savedSession.url, undefined, controller.signal), {
+    name: "AbortError",
+  });
+  assert.deepEqual(calls, ["/sessions"]);
+  const [saved] = await db.list<BrowserSession>("owner", "browsers");
+  assert.equal(saved?.status, "idle", "cancellation must not persist a browser failure");
+});
+
 test("chat browser reads reuse a persisted owned profile across turns and service restarts", async (t) => {
   const calls: { path: string; body: Record<string, unknown> }[] = [];
   let currentUrl = savedSession.url;
@@ -287,7 +303,7 @@ test("browser imports return rejected downloads even when no PDF was accepted", 
 });
 
 test("worker persists unsupported, oversized and interrupted download outcomes", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "openmuse-download-outcomes-"));
+  const directory = await mkdtemp(join(tmpdir(), "openfuse-download-outcomes-"));
   try {
     const cases = [
       { name: "notes.txt", contents: Buffer.from("not a PDF"), code: "UNSUPPORTED_DOWNLOAD" },
@@ -322,6 +338,160 @@ test("worker persists unsupported, oversized and interrupted download outcomes",
     assert(failures.every((failure) => failure.message && failure.createdAt));
   } finally {
     await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("worker recovery cleans unpublished downloads and retains their interruption failures", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "openfuse-download-recovery-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const folder = join(directory, "downloads");
+  const outcomes = join(directory, "download-outcomes");
+  await mkdir(folder);
+  await mkdir(outcomes);
+  const failure = {
+    id: "00000000-0000-4000-8000-000000000006",
+    name: "unfinished.pdf",
+    code: "DOWNLOAD_INTERRUPTED",
+    message: "The download was interrupted.",
+    createdAt: "2026-09-15T00:00:00.000Z",
+  };
+  const pdf = join(folder, `${failure.id}.pdf`);
+  const metadataTemp = join(folder, `${failure.id}.json.tmp`);
+  const bytes = Buffer.from("%PDF-1.7\npartial download");
+  await writeFile(pdf, bytes);
+  await writeFile(metadataTemp, '{"id":');
+  await writeFile(
+    join(outcomes, `${failure.id}.json`),
+    JSON.stringify({ ...failure, status: "pending" }),
+  );
+
+  assert.deepEqual(await readDownloadFailures(directory), []);
+  assert.deepEqual(await readFile(pdf), bytes, "ordinary reads must not clean active downloads");
+  assert.deepEqual(await readDownloadFailures(directory, true), [failure]);
+  await assert.rejects(readFile(pdf), { code: "ENOENT" });
+  await assert.rejects(readFile(metadataTemp), { code: "ENOENT" });
+  assert.deepEqual(await readDownloadFailures(directory, true), [failure]);
+});
+
+test("worker recovery retries incomplete cleanup before recording failure", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "openfuse-download-recovery-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const folder = join(directory, "downloads");
+  const outcomes = join(directory, "download-outcomes");
+  await mkdir(folder);
+  await mkdir(outcomes);
+  const failure = {
+    id: "00000000-0000-4000-8000-000000000009",
+    name: "unfinished.pdf",
+    code: "DOWNLOAD_INTERRUPTED",
+    message: "The download was interrupted.",
+    createdAt: "2026-09-15T00:00:00.000Z",
+  };
+  const journal = join(outcomes, `${failure.id}.json`);
+  await writeFile(journal, JSON.stringify({ ...failure, status: "pending" }));
+  const pdf = join(folder, `${failure.id}.pdf`);
+  await writeFile(pdf, "%PDF-1.7\npartial download");
+  const metadataTemp = join(folder, `${failure.id}.json.tmp`);
+  // A directory at the file path forces cleanup to fail without permission mocks.
+  await mkdir(metadataTemp);
+
+  await assert.rejects(readDownloadFailures(directory, true));
+  assert.deepEqual(JSON.parse(await readFile(journal, "utf8")), { ...failure, status: "pending" });
+  await assert.rejects(readFile(pdf), { code: "ENOENT" });
+  await rm(metadataTemp, { recursive: true });
+  assert.deepEqual(await readDownloadFailures(directory, true), [failure]);
+  assert.deepEqual(await readDownloadFailures(directory, true), [failure]);
+  assert.equal(JSON.parse(await readFile(journal, "utf8")).status, "failed");
+});
+
+test("worker recovery preserves downloads when metadata cannot be inspected", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "openfuse-download-recovery-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const folder = join(directory, "downloads");
+  const outcomes = join(directory, "download-outcomes");
+  await mkdir(folder);
+  await mkdir(outcomes);
+  const id = "00000000-0000-4000-8000-000000000007";
+  const outcome = {
+    id,
+    name: "unreadable.pdf",
+    status: "pending",
+    code: "DOWNLOAD_INTERRUPTED",
+    message: "The download was interrupted.",
+    createdAt: "2026-09-15T00:00:00.000Z",
+  };
+  const pdf = join(folder, `${id}.pdf`);
+  const metadata = join(folder, `${id}.json`);
+  const bytes = Buffer.from("%PDF-1.7\npreserve me");
+  await writeFile(pdf, bytes);
+  await writeFile(`${metadata}.tmp`, '{"id":');
+  const journal = join(outcomes, `${id}.json`);
+  await writeFile(journal, JSON.stringify(outcome));
+  // A symlink loop raises a real filesystem error even when tests run as root.
+  await symlink(`${id}.json`, metadata);
+
+  await assert.rejects(readDownloadFailures(directory, true), { code: "ELOOP" });
+  assert.deepEqual(await readFile(pdf), bytes);
+  assert.equal(await readFile(`${metadata}.tmp`, "utf8"), '{"id":');
+  assert.deepEqual(JSON.parse(await readFile(journal, "utf8")), outcome);
+});
+
+test("listing download failures tolerates an outcome disappearing before it is read", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "openfuse-download-list-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const outcomes = join(directory, "download-outcomes");
+  await mkdir(outcomes);
+  // Model the ENOENT from a successful transfer removing its listed journal.
+  await symlink("finished", join(outcomes, "gone.json"));
+  assert.deepEqual(await readDownloadFailures(directory), []);
+});
+
+test("worker recovery reconciles published downloads and transfers without files", async (t) => {
+  for (const published of [false, true]) {
+    await t.test(
+      published ? "published PDF is retained" : "missing files are tolerated",
+      async (t) => {
+        const directory = await mkdtemp(join(tmpdir(), "openfuse-download-recovery-"));
+        t.after(() => rm(directory, { recursive: true, force: true }));
+        const folder = join(directory, "downloads");
+        const outcomes = join(directory, "download-outcomes");
+        await mkdir(folder);
+        await mkdir(outcomes);
+        const failure = {
+          id: "00000000-0000-4000-8000-000000000008",
+          name: "report.pdf",
+          code: "DOWNLOAD_INTERRUPTED",
+          message: "The download was interrupted.",
+          createdAt: "2026-09-15T00:00:00.000Z",
+        };
+        const journal = join(outcomes, `${failure.id}.json`);
+        await writeFile(journal, JSON.stringify({ ...failure, status: "pending" }));
+        const bytes = Buffer.from("%PDF-1.7\npublished download");
+        const pdf = join(folder, `${failure.id}.pdf`);
+        const metadata = join(folder, `${failure.id}.json`);
+        const saved = {
+          id: failure.id,
+          name: failure.name,
+          size: bytes.length,
+          mimeType: "application/pdf",
+        };
+        if (published) {
+          await writeFile(pdf, bytes);
+          await writeFile(metadata, JSON.stringify(saved));
+        }
+
+        const expected = published ? [] : [failure];
+        assert.deepEqual(await readDownloadFailures(directory, true), expected);
+        assert.deepEqual(await readDownloadFailures(directory, true), expected);
+        if (published) {
+          assert.deepEqual(await readFile(pdf), bytes);
+          assert.deepEqual(JSON.parse(await readFile(metadata, "utf8")), saved);
+          await assert.rejects(readFile(journal), { code: "ENOENT" });
+        } else {
+          assert.equal(JSON.parse(await readFile(journal, "utf8")).status, "failed");
+        }
+      },
+    );
   }
 });
 
@@ -394,7 +564,7 @@ test("browser rejects DNS answers containing any private address and pins public
 });
 
 test("worker protects all controls, validates before launch, and health reveals no sessions", async () => {
-  const dataDir = await mkdtemp(join(tmpdir(), "openmuse-worker-"));
+  const dataDir = await mkdtemp(join(tmpdir(), "openfuse-worker-"));
   const savedId = "00000000-0000-4000-8000-000000000002";
   const downloadId = "00000000-0000-4000-8000-000000000003";
   const pendingId = "00000000-0000-4000-8000-000000000004";
@@ -402,6 +572,8 @@ test("worker protects all controls, validates before launch, and health reveals 
   const outcomeFolder = join(dataDir, savedId, "download-outcomes");
   await mkdir(downloadFolder, { recursive: true });
   await mkdir(outcomeFolder, { recursive: true });
+  await writeFile(join(downloadFolder, `${pendingId}.pdf`), "%PDF-1.7\npartial download");
+  await writeFile(join(downloadFolder, `${pendingId}.json.tmp`), '{"id":');
   await writeFile(
     join(outcomeFolder, `${pendingId}.json`),
     JSON.stringify({
@@ -473,6 +645,10 @@ test("worker protects all controls, validates before launch, and health reveals 
     ).json();
     assert.equal(outcomes.downloads.length, 1);
     assert.equal(outcomes.failures[0]?.code, "DOWNLOAD_INTERRUPTED");
+    await assert.rejects(readFile(join(downloadFolder, `${pendingId}.pdf`)), { code: "ENOENT" });
+    await assert.rejects(readFile(join(downloadFolder, `${pendingId}.json.tmp`)), {
+      code: "ENOENT",
+    });
     const oversized = await fetch(`${base}/sessions/${savedId}/downloads/${downloadId}`, {
       headers,
     });

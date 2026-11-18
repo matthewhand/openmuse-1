@@ -61,7 +61,14 @@ export function Details({ detail }: { detail: Detail }) {
   const { close, navigate } = useWorkspace();
   if (detail.type === "computer") return <ComputerSheet />;
   if (detail.type === "task") return <TaskDetail taskId={detail.taskId} />;
-  if (detail.type === "delegate") return <DelegateSheet />;
+  if (detail.type === "delegate")
+    return (
+      <DelegateSheet
+        key={`${detail.goalId}:${detail.milestoneId}`}
+        goalId={detail.goalId}
+        milestoneId={detail.milestoneId}
+      />
+    );
   if (detail.type === "notifications") return <NotificationsSheet />;
   if (detail.type === "mail") return <MailDetail mail={detail.mail} />;
   if (detail.type === "email") return <EmailEditor draft={detail.draft} />;
@@ -257,7 +264,7 @@ function EmailEditor({ draft }: { draft?: Partial<EmailDraft> & { id?: string } 
           ...(draft?.id ? { id: draft.id } : {}),
         });
         await refresh();
-        notify("Draft saved in OpenMuse.");
+        notify("Draft saved in OpenFuse.");
         close();
       }
     } catch (e) {
@@ -269,7 +276,7 @@ function EmailEditor({ draft }: { draft?: Partial<EmailDraft> & { id?: string } 
   return (
     <Sheet
       title={draft?.threadId ? "Write a reply" : "A new message"}
-      subtitle={`From ${w.profile.email} · saved privately in OpenMuse`}
+      subtitle={`From ${w.profile.email} · saved privately in OpenFuse`}
       onClose={close}
     >
       <Field

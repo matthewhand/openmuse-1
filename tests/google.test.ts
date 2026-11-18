@@ -37,6 +37,88 @@ const eventResponse = {
 };
 const base64url = (text: string) => Buffer.from(text).toString("base64url");
 
+test("mail addresses exclude comments, including nested and escaped parentheses", async () => {
+  for (const comment of [
+    "(old@example.com)",
+    "(old@example.com (another@example.com))",
+    "(legacy \\) old@example.com)",
+  ]) {
+    const client = clientWith(() =>
+      json({
+        id: "thread1",
+        messages: [
+          {
+            id: "msg1",
+            threadId: "thread1",
+            payload: {
+              headers: [
+                { name: "From", value: `Support ${comment} <sender@example.com>` },
+                {
+                  name: "To",
+                  value: `${comment} <reader@example.com>, second@example.com ${comment}`,
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    );
+    const [mail] = await client.getThread("thread1");
+    assert.equal(mail.from, "sender@example.com", comment);
+    assert.deepEqual(mail.to, ["reader@example.com", "second@example.com"], comment);
+  }
+});
+
+test("parentheses inside a quoted display name do not start address comments", async () => {
+  const client = clientWith(() =>
+    json({
+      id: "thread1",
+      messages: [
+        {
+          id: "msg1",
+          threadId: "thread1",
+          payload: {
+            headers: [
+              { name: "From", value: '"Support (West" <sender@example.com>' },
+              { name: "To", value: '"Help \\"desk (west@example.com)" <reader@example.com>' },
+            ],
+          },
+        },
+      ],
+    }),
+  );
+  const [mail] = await client.getThread("thread1");
+  assert.equal(mail.from, "sender@example.com");
+  assert.deepEqual(mail.to, ["reader@example.com"]);
+});
+
+test("encoded display-name punctuation does not become address syntax", async () => {
+  for (const name of ["Support (West", "Support ) West", "old@example.com (West)"]) {
+    const encoded = `=?UTF-8?B?${Buffer.from(name).toString("base64")}?=`;
+    const client = clientWith(() =>
+      json({
+        id: "thread1",
+        messages: [
+          {
+            id: "msg1",
+            threadId: "thread1",
+            payload: {
+              headers: [
+                { name: "From", value: `${encoded} <sender@example.com>` },
+                { name: "To", value: "=?UTF-8?Q?old@example.com_=28West?= <reader@example.com>" },
+              ],
+            },
+          },
+        ],
+      }),
+    );
+    const [mail] = await client.getThread("thread1");
+    assert.equal(mail.from, "sender@example.com", name);
+    assert.equal(mail.sender, name);
+    assert.deepEqual(mail.to, ["reader@example.com"]);
+  }
+});
+
 test("mail reads nested plain text and attachment references over authenticated Gmail paths", async () => {
   const paths: URL[] = [];
   const client = clientWith((request) => {
@@ -86,6 +168,99 @@ test("mail reads nested plain text and attachment references over authenticated 
   assert.deepEqual(mail.to, ["guardian@example.com"]);
   assert.equal(mail.unread, true);
   assert.deepEqual(mail.attachments, ["msg1:attach1:Permission%3A%20form.pdf"]);
+});
+
+test("mail decodes folded adjacent encoded words without inserting header whitespace", async () => {
+  const encodedWord = (value: string) => `=?UTF-8?B?${Buffer.from(value).toString("base64")}?=`;
+  for (const separator of [" ", "\t", "\r\n ", "\r\n\t", " \r\n \t"]) {
+    const client = clientWith(() =>
+      json({
+        id: "thread1",
+        messages: [
+          {
+            id: "msg1",
+            threadId: "thread1",
+            payload: {
+              headers: [
+                {
+                  name: "Subject",
+                  value: `${encodedWord("Visit résumé")}${separator}${encodedWord(" details")}`,
+                },
+                {
+                  name: "From",
+                  value: `${encodedWord("Community")}${separator}${encodedWord(" Museum")} <museum@example.com>`,
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    );
+    const [mail] = await client.getThread("thread1");
+    assert.equal(mail.subject, "Visit résumé details", JSON.stringify(separator));
+    assert.equal(mail.sender, "Community Museum", JSON.stringify(separator));
+    assert.equal(mail.from, "museum@example.com");
+  }
+});
+
+test("header decoding preserves spaces encoded inside words and next to plain text", async () => {
+  const client = clientWith(() =>
+    json({
+      id: "thread1",
+      messages: [
+        {
+          id: "msg1",
+          threadId: "thread1",
+          payload: {
+            headers: [{ name: "Subject", value: "Re: =?UTF-8?Q?Visit_r=C3=A9sum=C3=A9?= notes" }],
+          },
+        },
+      ],
+    }),
+  );
+  assert.equal((await client.getThread("thread1"))[0].subject, "Re: Visit résumé notes");
+});
+
+test("a numeric character reference to a surrogate stays literal instead of failing the list", async () => {
+  // String.fromCodePoint throws on surrogate code points; a sender can put the
+  // literal text &#xD800; in a snippet, and one such message must not reject
+  // the whole list (Promise.all over per-message parses).
+  const client = clientWith((request) =>
+    new URL(request.url).pathname.endsWith("/messages")
+      ? json({ messages: [{ id: "msg1" }] })
+      : json({ id: "msg1", threadId: "thread1", snippet: "Entity notes: &#xD800; and &#55296;" }),
+  );
+  const [mail] = await client.listMail();
+  assert.equal(mail.body, "Entity notes: &#xD800; and &#55296;");
+});
+
+test("a body charset TextDecoder does not know falls back to UTF-8 instead of failing the list", async () => {
+  const charsets: Record<string, string> = { known: "utf-8", unknown: "unknown-8bit" };
+  const bodies: Record<string, string> = { known: "Opening hours", unknown: "Café tickets" };
+  const client = clientWith((request) => {
+    const url = new URL(request.url);
+    if (url.pathname.endsWith("/messages"))
+      return json({ messages: [{ id: "known" }, { id: "unknown" }] });
+    const id = url.pathname.split("/").at(-1) ?? "";
+    return json({
+      id,
+      threadId: `thread-${id}`,
+      labelIds: ["INBOX"],
+      payload: {
+        headers: [
+          { name: "From", value: "Museum <museum@example.com>" },
+          { name: "Content-Type", value: `text/plain; charset=${charsets[id]}` },
+        ],
+        mimeType: "text/plain",
+        body: { data: base64url(bodies[id]) },
+      },
+    });
+  });
+  const mail = await client.listMail();
+  assert.deepEqual(
+    mail.map((item) => item.body),
+    ["Opening hours", "Café tickets"],
+  );
 });
 
 test("HTML-only messages expose complete plain text while removing active and non-content elements", async () => {
@@ -475,6 +650,26 @@ test("all-day writes use exclusive date-only end and invalid dates never call Go
   assert.equal(requests, 1);
 });
 
+test("calendar creates and updates reject nonexistent dates before contacting Google", async () => {
+  let requests = 0;
+  const client = clientWith(() => {
+    requests++;
+    return json(eventResponse);
+  });
+  for (const allDay of [true, false]) {
+    const suffix = allDay ? "" : "T10:00:00+08:00";
+    const draft = {
+      ...event(),
+      allDay,
+      start: `2026-02-29${suffix}`,
+      end: `2026-03-02${suffix}`,
+    };
+    await assert.rejects(client.createEvent(draft), { name: "ZodError" });
+    await assert.rejects(client.updateEvent("event-1", draft), { name: "ZodError" });
+  }
+  assert.equal(requests, 0);
+});
+
 test("event updates explicitly clear the opposite time representation when switching all-day mode", async () => {
   const client = clientWith(async (request) => {
     if (request.method === "GET") return json(eventResponse);
@@ -719,6 +914,67 @@ test("calendar discovery follows pagination and retains names, zones, and access
   ]);
 });
 
+test("calendars without an explicit time zone still list with a UTC fallback", async () => {
+  const client = clientWith(() =>
+    json({
+      items: [
+        {
+          id: "shared@example.com",
+          summary: "Family",
+          accessRole: "reader",
+        },
+      ],
+    }),
+  );
+  assert.deepEqual(await client.listCalendars(), [
+    {
+      id: "shared@example.com",
+      name: "Family",
+      timeZone: "UTC",
+      accessRole: "reader",
+    },
+  ]);
+});
+
+test("event review falls back to UTC when neither the event nor its calendar has a zone", async () => {
+  const client = clientWith((request) => {
+    const path = new URL(request.url).pathname;
+    if (path.endsWith("/calendarList/primary"))
+      return json({ id: "primary", summary: "Personal", accessRole: "owner" });
+    return json({ ...eventResponse, start: { dateTime: "2026-10-10T10:00:00-07:00" } });
+  });
+  const { event } = await client.reviewEvent("primary", "event-1");
+  assert.equal(event.timeZone, "UTC");
+});
+
+test("bounded calendar pages retain completeness independently of item count", async () => {
+  for (const [count, nextPageToken, truncated] of [
+    [0, "next-page", true],
+    [0, undefined, false],
+    [100, undefined, false],
+    [101, undefined, true],
+  ] as const) {
+    let reads = 0;
+    const client = clientWith(() => {
+      reads++;
+      return json({
+        items: Array.from({ length: count }, (_, index) => ({
+          ...eventResponse,
+          id: `event-${index}`,
+        })),
+        nextPageToken,
+      });
+    });
+    const page = await client.listEventsPage({
+      timeMin: "2026-10-01T00:00:00Z",
+      timeMax: "2026-11-01T00:00:00Z",
+    });
+    assert.equal(page.events.length, Math.min(count, 100));
+    assert.equal(page.truncated, truncated);
+    assert.equal(reads, 1);
+  }
+});
+
 test("recurring masters and occurrences are rejected from fresh Google data before updates or deletes", async () => {
   for (const recurrence of [
     { recurrence: ["RRULE:FREQ=WEEKLY"] },
@@ -757,4 +1013,147 @@ test("single-event validation is repeated at execution and read failures never d
   });
   await assert.rejects(failing.deleteEvent("primary", "event-1"), GoogleApiError);
   assert.equal(writes, 0);
+});
+
+test("mail parsing tolerates unknown charsets, RFC 2231 words, and display names with addresses", async () => {
+  const client = clientWith((request) =>
+    new URL(request.url).pathname.endsWith("/messages")
+      ? json({ messages: [{ id: "msg-charset" }] })
+      : json({
+          id: "msg-charset",
+          threadId: "thread-charset",
+          payload: {
+            mimeType: "text/plain",
+            headers: [
+              { name: "From", value: "<bare@example.com>" },
+              { name: "To", value: '"billing@other.example" <real@example.com>' },
+              { name: "Subject", value: "=?UTF-8*en?B?SGVsbG8=?=" },
+              { name: "Content-Type", value: "text/plain; charset=unknown-8bit" },
+            ],
+            body: { data: base64url("Body with unknown charset ✓") },
+          },
+        }),
+  );
+  const [mail] = await client.listMail();
+  assert.equal(mail.body, "Body with unknown charset ✓");
+  assert.equal(mail.subject, "Hello");
+  assert.equal(mail.from, "bare@example.com");
+  assert.equal(mail.sender, "bare@example.com");
+  assert.deepEqual(mail.to, ["real@example.com"]);
+});
+
+test("an attached message is not merged into the parent body", async () => {
+  const client = clientWith((request) =>
+    new URL(request.url).pathname.endsWith("/messages")
+      ? json({ messages: [{ id: "msg-forward" }] })
+      : json({
+          id: "msg-forward",
+          threadId: "thread-forward",
+          payload: {
+            mimeType: "multipart/mixed",
+            parts: [
+              { mimeType: "text/plain", body: { data: base64url("Outer body text.") } },
+              {
+                mimeType: "message/rfc822",
+                filename: "forwarded.eml",
+                body: { attachmentId: "attach2", size: 42 },
+                parts: [
+                  {
+                    mimeType: "text/plain",
+                    body: { data: base64url("INNER ATTACHED MESSAGE BODY") },
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+  );
+  const [mail] = await client.listMail();
+  assert.equal(mail.body, "Outer body text.");
+  assert.deepEqual(mail.attachments, ["msg-forward:attach2:forwarded.eml"]);
+});
+
+test("a sender's unpaired-surrogate attachment filename does not break the inbox", async () => {
+  const client = clientWith((request) => {
+    const url = new URL(request.url);
+    if (url.pathname.endsWith("/messages")) return json({ messages: [{ id: "msg1" }] });
+    return json({
+      id: "msg1",
+      threadId: "thread1",
+      internalDate: "1791658800000",
+      labelIds: ["INBOX"],
+      payload: {
+        headers: [{ name: "From", value: "sender@example.com" }],
+        mimeType: "multipart/mixed",
+        parts: [
+          { mimeType: "text/plain", body: { data: base64url("See attached.") } },
+          {
+            mimeType: "application/pdf",
+            filename: "form\uD800.pdf",
+            body: { attachmentId: "attach1", size: 10 },
+          },
+        ],
+      },
+    });
+  });
+  const [mail] = await client.listMail();
+  assert.deepEqual(mail.attachments, ["msg1:attach1:form%EF%BF%BD.pdf"]);
+});
+
+test("an outgoing attachment name with an unpaired surrogate still sends", async () => {
+  const client = clientWith(async (request) => {
+    if (new URL(request.url).pathname.endsWith("/profile"))
+      return json({ emailAddress: "me@example.com" });
+    const { raw } = await request.json();
+    const mime = Buffer.from(raw, "base64url").toString("utf8");
+    assert.match(mime, /filename\*=UTF-8''form%EF%BF%BD\.pdf/);
+    return json({ id: "sent1", threadId: "thread1" });
+  });
+  await client.sendEmail(email(), [
+    { name: "form\uD800.pdf", mimeType: "application/pdf", bytes: Buffer.from([1]) },
+  ]);
+});
+
+test("attached MIME trees are not fetched while loading the parent message", async () => {
+  for (const attached of [
+    { mimeType: "message/rfc822", filename: "forwarded.eml" },
+    { mimeType: "message/rfc822" },
+    { mimeType: "multipart/mixed", filename: "attached.mime" },
+  ]) {
+    const reads: string[] = [];
+    const message = {
+      id: "outer",
+      threadId: "thread1",
+      payload: {
+        mimeType: "multipart/mixed",
+        parts: [
+          { mimeType: "text/plain", body: { data: base64url("Outer body.") } },
+          {
+            ...attached,
+            body: { attachmentId: "attached", size: 42 },
+            parts: [{ mimeType: "text/plain", body: { attachmentId: "inner", size: 20 } }],
+          },
+        ],
+      },
+    };
+    const client = clientWith((request) => {
+      const path = new URL(request.url).pathname;
+      reads.push(path);
+      if (path.includes("/attachments/"))
+        return json({ error: { message: "Unavailable attachment" } }, 404);
+      if (path.endsWith("/messages")) return json({ messages: [{ id: "outer" }] });
+      if (path.includes("/threads/")) return json({ id: "thread1", messages: [message] });
+      return json(message);
+    });
+    const [mail] = await client.listMail();
+    assert.equal(mail.body, "Outer body.");
+    assert.equal(reads.length, 2);
+    assert.deepEqual(mail.attachments, [
+      `outer:attached:${attached.filename || "forwarded-message.eml"}`,
+    ]);
+    const [threadMail] = await client.getThread("thread1");
+    assert.equal(threadMail.body, "Outer body.");
+    assert.deepEqual(threadMail.attachments, mail.attachments);
+    assert.equal(reads.length, 3);
+  }
 });
