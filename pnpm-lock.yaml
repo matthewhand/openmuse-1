@@ -21,11 +21,10 @@ overrides:
   undici@<6.29.1: 6.29.1
   e2b>undici8: npm:undici@8.12.2
   postcss@>=8 <8.5.18: 8.5.33
+  zod@<4.0.0: file:./packages/zod-v3-compat
 
 patchedDependencies:
   metro@0.83.3: 9ff078d9c4cca5ebb54c5b9603aa59b7de48cbac1f547ffb1adb87b66e5c2e3f
-  zod@3.25.75: 38a29cf2dd5e64b737390c4b69a5ba31a1d8bd7283ab8d847ffb96c07bff60ef
-  zod@3.25.76: fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4
   zod@4.6.7: d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928
 
 importers:
@@ -263,11 +262,13 @@ packages:
 
   '@ag-ui/mcp-apps-middleware@0.0.3':
     resolution: {integrity: sha512-Z+NZQXj4J+Y/2PLNsiyhNzRWFtTT2sAoC5dztoAlIsdfzvLvYEa52YGdHesNTN85JJqaIrYxQ8e31IBpKjrnoA==}
+    version: 0.0.3
     peerDependencies:
       '@ag-ui/client': '>=0.0.40'
 
   '@ag-ui/mcp-middleware@0.0.1':
     resolution: {integrity: sha512-TayUu7kB+jXUTPRUJesNvJYrP+0weTL9F2VJJ8QQ4sWxY/Ihjo+GgFYgJZYNcLwbo1DKgmVJtdm2XUouPCbxeg==}
+    version: 0.0.1
     peerDependencies:
       rxjs: 7.8.1
 
@@ -279,66 +280,77 @@ packages:
 
   '@ai-sdk/anthropic@2.0.102':
     resolution: {integrity: sha512-OGECnK9zIfZQQ++/py3lMDtFT1u43WQO7Js5V5esTOa2iu1E9gDYO5FsJq3DRHZiQlMwBUwIrKNKJfFk2zqgqw==}
+    version: 2.0.102
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
   '@ai-sdk/anthropic@3.0.118':
     resolution: {integrity: sha512-5j8Cc9owORxhhZxFtpznXPTdLxeWm6bPCVbndM0e+NdvGVxe9GDgNqQq1V0KqOV54hZ6hyQVEXHkgTRPyXzcQg==}
+    version: 3.0.118
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
   '@ai-sdk/gateway@3.0.193':
     resolution: {integrity: sha512-T2vq1EKPhbFF2Sk2MUFL/RmCg/2mp1LGbCZZSx5vh0M6Sr1EAj3wRr1EnpcwCV3/Imj2q56pT89XLiUFnB+ZgQ==}
+    version: 3.0.193
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
   '@ai-sdk/google-vertex@3.0.174':
     resolution: {integrity: sha512-L1DniqC5AwiTR/6k6NPrDbyZce5bjQbcTsR5ANQqLjz2ntnbtQaAtK6SNuOD/6jLayoqXVuO/MLqQEoIyDeuVg==}
+    version: 3.0.174
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
   '@ai-sdk/google@2.0.97':
     resolution: {integrity: sha512-IGv9wGvbeuNBUVXzqwuOZTHXZUUEuO/aUKfSw2iv7smhalBC1FFuth5WLapJQHb1nusoDup5nELopzXV28vcxA==}
+    version: 2.0.97
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
   '@ai-sdk/google@3.0.122':
     resolution: {integrity: sha512-GntcGIfRviU9ZhORN2yoQcp9Hy5cv0w6iqRLaX0/BNdTogG5JX7g7l/Tv6Uev379iJizcHBd+U0cLB78KDrMxw==}
+    version: 3.0.122
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
   '@ai-sdk/mcp@1.0.80':
     resolution: {integrity: sha512-bf2j+8IMg1nf9GDJ8b53himMMd2jWZnOJwXQCl5gDRzDjslxI/fCCOwC3Ax8pjvHfkt185db6Z344M8ctJ7Rtw==}
+    version: 1.0.80
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
   '@ai-sdk/openai-compatible@1.0.54':
     resolution: {integrity: sha512-3wY1L21FLhfKN6I1nQeWgFzDCeBiRxXwU2guE9BCixSLfOPtkJ0vyF7zo7lbnAg1y7tz6RDPq/o+AJf6QSL55g==}
+    version: 1.0.54
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
   '@ai-sdk/openai@3.0.112':
     resolution: {integrity: sha512-0ho3a9CJ+3KCcrPdBQx8fX7/gyUxFHsfs1M6++SpunYk8+pgGOPMskr0GVOOxY+94jsJbuGxksKfMuSYhYHcxw==}
+    version: 3.0.112
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
   '@ai-sdk/provider-utils@3.0.37':
     resolution: {integrity: sha512-mLx1SgE20xKQ87xME+9uG6pFlYPTqGDrMFrZ6XcytDnmbWGwmCIh2Xb9zFrfXUrKycSFRDet4Zovj388L9b1dg==}
+    version: 3.0.37
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
   '@ai-sdk/provider-utils@4.0.51':
     resolution: {integrity: sha512-ukLTs9x1Xm6lxSIwbJIxYQxbZHmVeIczNntARZrBcOa6pjdBhqeZnATNnJMHa7M9dZ8Ji5NJbpKpvz7o5XyBtg==}
+    version: 4.0.51
     engines: {node: '>=18.17'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -996,6 +1008,7 @@ packages:
 
   '@copilotkit/channels-core@0.9.2':
     resolution: {integrity: sha512-YfWoLlnH2Vm1m6zj27BCOI0STLvvQPQP4q0b+JppRVYsLJglphGcg4miyr6Kzcx/CN3JeTp0mEP7zjLnyOJB1Q==}
+    version: 0.9.2
     peerDependencies:
       vitest: ^4.0.0
     peerDependenciesMeta:
@@ -1004,6 +1017,7 @@ packages:
 
   '@copilotkit/channels-intelligence@0.9.2':
     resolution: {integrity: sha512-0wi1u1OER1LSZmA3xq1j9HT/juxedIW715ogY//aZViyT2kmfmKABOMY0JhQEzgKUFbThyFggfKqPzE+xZtT+A==}
+    version: 0.9.2
 
   '@copilotkit/channels-slack@0.9.2':
     resolution: {integrity: sha512-Au/1et1KrdftsfyTquG5sAhl/BJe1eejanbVmX21u7k6+DjrL+No+GSIQncBmnSL/0YmPSHvGRts8ykRL0S3pA==}
@@ -1020,6 +1034,7 @@ packages:
 
   '@copilotkit/core@1.71.1':
     resolution: {integrity: sha512-OFO/S/M14Utv24cup1vPw8egoCzpJ1QnuVWQQzkch4BG2KRUjVTtw2Mzg1s2xX65NgbgJfhT5XgOyvmp+9vcDA==}
+    version: 1.71.1
     engines: {node: '>=18'}
 
   '@copilotkit/license-verifier@0.5.0':
@@ -1600,6 +1615,7 @@ packages:
 
   '@langchain/langgraph@1.4.15':
     resolution: {integrity: sha512-QG8led1xbFfgikAIF9E5G1Kp1KLtq/xv7YASWy+wnPftQw0Hxu0kpPXl0Q1U2Dfpwb8w/Vfz0QarUR8eI/xtRw==}
+    version: 1.4.15
     engines: {node: '>=18'}
     peerDependencies:
       '@langchain/core': ^1.1.48
@@ -1661,6 +1677,7 @@ packages:
 
   '@modelcontextprotocol/sdk@1.32.2':
     resolution: {integrity: sha512-SWsVtH/0vULSQStoZ6xxH2K09Li8fXYTMC64ZeogCdpZ3XSi1eCPOByV1OpuJxuI3OcmHhosDWYyii07tpPsLw==}
+    version: 1.32.2
     engines: {node: '>=18'}
     peerDependencies:
       '@cfworker/json-schema': ^4.1.1
@@ -1672,6 +1689,9 @@ packages:
   '@noble/hashes@1.8.0':
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
     engines: {node: ^14.21.3 || >=16}
+
+  '@openfuse/zod-v3-compat@file:packages/zod-v3-compat':
+    resolution: {directory: packages/zod-v3-compat, type: directory}
 
   '@opentelemetry/api@1.9.1':
     resolution: {integrity: sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==}
@@ -2558,6 +2578,7 @@ packages:
 
   ai@6.0.282:
     resolution: {integrity: sha512-fdzEzSppVTYlgyW/Gp6tMAFIU88yv7k86x77m5vAJo7hXV31hDJCsAkq/aIpE3tP3k4LjrrLcUANPHcBZ0YWsw==}
+    version: 6.0.282
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -6300,14 +6321,9 @@ packages:
 
   zod-to-json-schema@3.25.2:
     resolution: {integrity: sha512-O/PgfnpT1xKSDeQYSCfRI5Gy3hPf91mKVDuYLUHZJMiDFptvP41MSnWofm8dnCm0256ZNfZIM7DSzuSMAFnjHA==}
+    version: 3.25.2
     peerDependencies:
       zod: ^3.25.28 || ^4
-
-  zod@3.25.75:
-    resolution: {integrity: sha512-OhpzAmVzabPOL6C3A3gpAifqr9MqihV/Msx3gor2b2kviCgcb+HM9SEOpMWwwNp9MRunWnhtAKUoo0AHhjyPPg==}
-
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
   zod@4.6.7:
     resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
@@ -6325,8 +6341,8 @@ snapshots:
     dependencies:
       '@preact/signals-core': 1.14.4
       date-fns: 4.4.0
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
-      zod-to-json-schema: 3.25.2(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
+      zod-to-json-schema: 3.25.2(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
 
   '@ag-ui/a2ui-middleware@0.0.10(@ag-ui/client@0.0.59)(rxjs@7.8.1)':
     dependencies:
@@ -6348,7 +6364,7 @@ snapshots:
       rxjs: 7.8.1
       untruncate-json: 0.0.1
       uuid: 11.1.1
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
   '@ag-ui/client@0.0.59':
     dependencies:
@@ -6361,15 +6377,15 @@ snapshots:
       rxjs: 7.8.1
       untruncate-json: 0.0.1
       uuid: 11.1.1
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
   '@ag-ui/core@0.0.54':
     dependencies:
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
   '@ag-ui/core@0.0.59':
     dependencies:
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
   '@ag-ui/core@1.0.0(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928))':
     optionalDependencies:
@@ -6404,20 +6420,20 @@ snapshots:
       - react-dom
       - ws
 
-  '@ag-ui/mcp-apps-middleware@0.0.3(@ag-ui/client@0.0.59)(@cfworker/json-schema@4.1.1)(supports-color@8.1.1)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@ag-ui/mcp-apps-middleware@0.0.3(@ag-ui/client@0.0.59)(@cfworker/json-schema@4.1.1)(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)(supports-color@8.1.1)':
     dependencies:
       '@ag-ui/client': 0.0.59
-      '@modelcontextprotocol/sdk': 1.32.2(@cfworker/json-schema@4.1.1)(supports-color@8.1.1)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@modelcontextprotocol/sdk': 1.32.2(@cfworker/json-schema@4.1.1)(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)(supports-color@8.1.1)
       rxjs: 7.8.1
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - supports-color
       - zod
 
-  '@ag-ui/mcp-middleware@0.0.1(@cfworker/json-schema@4.1.1)(rxjs@7.8.1)(supports-color@8.1.1)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@ag-ui/mcp-middleware@0.0.1(@cfworker/json-schema@4.1.1)(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)(rxjs@7.8.1)(supports-color@8.1.1)':
     dependencies:
       '@ag-ui/client': 0.0.54
-      '@modelcontextprotocol/sdk': 1.32.2(@cfworker/json-schema@4.1.1)(supports-color@8.1.1)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@modelcontextprotocol/sdk': 1.32.2(@cfworker/json-schema@4.1.1)(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)(supports-color@8.1.1)
       rxjs: 7.8.1
     transitivePeerDependencies:
       - '@cfworker/json-schema'
@@ -6436,84 +6452,84 @@ snapshots:
       '@bufbuild/protobuf': 2.15.0
       '@protobuf-ts/protoc': 2.11.1
 
-  '@ai-sdk/anthropic@2.0.102(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@ai-sdk/anthropic@2.0.102(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)':
     dependencies:
       '@ai-sdk/provider': 2.0.4
-      '@ai-sdk/provider-utils': 3.0.37(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      '@ai-sdk/provider-utils': 3.0.37(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
-  '@ai-sdk/anthropic@3.0.118(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@ai-sdk/anthropic@3.0.118(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)':
     dependencies:
       '@ai-sdk/provider': 3.0.16
-      '@ai-sdk/provider-utils': 4.0.51(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      '@ai-sdk/provider-utils': 4.0.51(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
-  '@ai-sdk/gateway@3.0.193(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@ai-sdk/gateway@3.0.193(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)':
     dependencies:
       '@ai-sdk/provider': 3.0.16
-      '@ai-sdk/provider-utils': 4.0.51(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@ai-sdk/provider-utils': 4.0.51(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
       '@vercel/oidc': 3.2.0
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
-  '@ai-sdk/google-vertex@3.0.174(supports-color@8.1.1)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@ai-sdk/google-vertex@3.0.174(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)(supports-color@8.1.1)':
     dependencies:
-      '@ai-sdk/anthropic': 2.0.102(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      '@ai-sdk/google': 2.0.97(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      '@ai-sdk/openai-compatible': 1.0.54(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@ai-sdk/anthropic': 2.0.102(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
+      '@ai-sdk/google': 2.0.97(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
+      '@ai-sdk/openai-compatible': 1.0.54(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
       '@ai-sdk/provider': 2.0.4
-      '@ai-sdk/provider-utils': 3.0.37(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@ai-sdk/provider-utils': 3.0.37(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
       google-auth-library: 10.9.1(supports-color@8.1.1)
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
     transitivePeerDependencies:
       - supports-color
 
-  '@ai-sdk/google@2.0.97(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@ai-sdk/google@2.0.97(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)':
     dependencies:
       '@ai-sdk/provider': 2.0.4
-      '@ai-sdk/provider-utils': 3.0.37(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      '@ai-sdk/provider-utils': 3.0.37(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
-  '@ai-sdk/google@3.0.122(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@ai-sdk/google@3.0.122(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)':
     dependencies:
       '@ai-sdk/provider': 3.0.16
-      '@ai-sdk/provider-utils': 4.0.51(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      '@ai-sdk/provider-utils': 4.0.51(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
-  '@ai-sdk/mcp@1.0.80(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@ai-sdk/mcp@1.0.80(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)':
     dependencies:
       '@ai-sdk/provider': 3.0.16
-      '@ai-sdk/provider-utils': 4.0.51(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@ai-sdk/provider-utils': 4.0.51(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
       cross-spawn: 7.0.6
       pkce-challenge: 5.0.1
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
-  '@ai-sdk/openai-compatible@1.0.54(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@ai-sdk/openai-compatible@1.0.54(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)':
     dependencies:
       '@ai-sdk/provider': 2.0.4
-      '@ai-sdk/provider-utils': 3.0.37(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      '@ai-sdk/provider-utils': 3.0.37(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
-  '@ai-sdk/openai@3.0.112(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@ai-sdk/openai@3.0.112(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)':
     dependencies:
       '@ai-sdk/provider': 3.0.16
-      '@ai-sdk/provider-utils': 4.0.51(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      '@ai-sdk/provider-utils': 4.0.51(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
-  '@ai-sdk/provider-utils@3.0.37(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@ai-sdk/provider-utils@3.0.37(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)':
     dependencies:
       '@ai-sdk/provider': 2.0.4
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.1.1
       undici: 6.29.1
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
-  '@ai-sdk/provider-utils@4.0.51(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@ai-sdk/provider-utils@4.0.51(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)':
     dependencies:
       '@ai-sdk/provider': 3.0.16
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.1.1
       undici: 6.29.1
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
   '@ai-sdk/provider@2.0.4':
     dependencies:
@@ -7232,30 +7248,30 @@ snapshots:
       '@a2ui/web_core': 0.10.4
       clsx: 2.1.1
       lit: 3.3.3
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
-      zod-to-json-schema: 3.25.2(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
+      zod-to-json-schema: 3.25.2(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
     optionalDependencies:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
   '@copilotkit/aimock@1.42.0': {}
 
-  '@copilotkit/channels-core@0.9.2(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@copilotkit/channels-core@0.9.2(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)':
     dependencies:
       '@ag-ui/client': 0.0.59
       '@ag-ui/core': 0.0.59
       '@copilotkit/channels-ui': 0.9.2(@ag-ui/core@0.0.59)
-      '@copilotkit/core': 1.71.1(@ag-ui/core@0.0.59)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@copilotkit/core': 1.71.1(@ag-ui/core@0.0.59)(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
       '@copilotkit/shared': 1.71.1(@ag-ui/core@0.0.59)
-      zod-to-json-schema: 3.25.2(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      zod-to-json-schema: 3.25.2(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
     transitivePeerDependencies:
       - encoding
       - zod
 
-  '@copilotkit/channels-intelligence@0.9.2(@ag-ui/core@0.0.59)(@opentelemetry/api@1.9.1)(@types/express@4.17.25)(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@copilotkit/channels-intelligence@0.9.2(@ag-ui/core@0.0.59)(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)(@opentelemetry/api@1.9.1)(@types/express@4.17.25)(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)':
     dependencies:
       '@ag-ui/client': 0.0.59
-      '@copilotkit/channels-core': 0.9.2(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@copilotkit/channels-core': 0.9.2(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
       '@copilotkit/channels-slack': 0.9.2(@types/express@4.17.25)(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       '@copilotkit/channels-teams': 0.9.2(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@copilotkit/channels-ui': 0.9.2(@ag-ui/core@0.0.59)
@@ -7277,16 +7293,16 @@ snapshots:
     dependencies:
       '@ag-ui/client': 0.0.59
       '@ag-ui/core': 0.0.59
-      '@copilotkit/channels-core': 0.9.2(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@copilotkit/channels-core': 0.9.2(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
       '@copilotkit/channels-ui': 0.9.2(@ag-ui/core@0.0.59)
-      '@copilotkit/core': 1.71.1(@ag-ui/core@0.0.59)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@copilotkit/core': 1.71.1(@ag-ui/core@0.0.59)(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
       '@copilotkit/shared': 1.71.1(@ag-ui/core@0.0.59)
       '@slack/bolt': 4.7.3(@types/express@4.17.25)(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       '@slack/types': 2.22.0
       '@slack/web-api': 7.19.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       rxjs: 7.8.1
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
-      zod-to-json-schema: 3.25.2(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
+      zod-to-json-schema: 3.25.2(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
     transitivePeerDependencies:
       - '@types/express'
       - bufferutil
@@ -7300,16 +7316,16 @@ snapshots:
     dependencies:
       '@ag-ui/client': 0.0.59
       '@ag-ui/core': 0.0.59
-      '@copilotkit/channels-core': 0.9.2(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@copilotkit/channels-core': 0.9.2(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
       '@copilotkit/channels-ui': 0.9.2(@ag-ui/core@0.0.59)
-      '@copilotkit/core': 1.71.1(@ag-ui/core@0.0.59)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@copilotkit/core': 1.71.1(@ag-ui/core@0.0.59)(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
       '@copilotkit/shared': 1.71.1(@ag-ui/core@0.0.59)
       '@microsoft/agents-activity': 1.8.1
       '@microsoft/agents-hosting': 1.8.1(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       express: 4.22.3(supports-color@8.1.1)
       rxjs: 7.8.1
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
-      zod-to-json-schema: 3.25.2(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
+      zod-to-json-schema: 3.25.2(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@opentelemetry/api-logs'
@@ -7337,14 +7353,14 @@ snapshots:
       - encoding
       - zod
 
-  '@copilotkit/core@1.71.1(@ag-ui/core@0.0.59)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@copilotkit/core@1.71.1(@ag-ui/core@0.0.59)(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)':
     dependencies:
       '@ag-ui/client': 0.0.59
       '@copilotkit/shared': 1.71.1(@ag-ui/core@0.0.59)
       '@tanstack/pacer': 0.20.1
       phoenix: 1.8.14
       rxjs: 7.8.1
-      zod-to-json-schema: 3.25.2(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      zod-to-json-schema: 3.25.2(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
     transitivePeerDependencies:
       - '@ag-ui/core'
       - encoding
@@ -7442,27 +7458,27 @@ snapshots:
       '@ag-ui/core': 0.0.59
       '@ag-ui/encoder': 0.0.59
       '@ag-ui/langgraph': 0.0.43(@ag-ui/client@0.0.59)(@ag-ui/core@0.0.59)(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(ws@8.21.3)
-      '@ag-ui/mcp-apps-middleware': 0.0.3(@ag-ui/client@0.0.59)(@cfworker/json-schema@4.1.1)(supports-color@8.1.1)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      '@ag-ui/mcp-middleware': 0.0.1(@cfworker/json-schema@4.1.1)(rxjs@7.8.1)(supports-color@8.1.1)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      '@ai-sdk/anthropic': 3.0.118(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      '@ai-sdk/google': 3.0.122(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      '@ai-sdk/google-vertex': 3.0.174(supports-color@8.1.1)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      '@ai-sdk/mcp': 1.0.80(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      '@ai-sdk/openai': 3.0.112(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      '@copilotkit/channels-core': 0.9.2(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
-      '@copilotkit/channels-intelligence': 0.9.2(@ag-ui/core@0.0.59)(@opentelemetry/api@1.9.1)(@types/express@4.17.25)(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@ag-ui/mcp-apps-middleware': 0.0.3(@ag-ui/client@0.0.59)(@cfworker/json-schema@4.1.1)(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)(supports-color@8.1.1)
+      '@ag-ui/mcp-middleware': 0.0.1(@cfworker/json-schema@4.1.1)(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)(rxjs@7.8.1)(supports-color@8.1.1)
+      '@ai-sdk/anthropic': 3.0.118(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
+      '@ai-sdk/google': 3.0.122(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
+      '@ai-sdk/google-vertex': 3.0.174(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)(supports-color@8.1.1)
+      '@ai-sdk/mcp': 1.0.80(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
+      '@ai-sdk/openai': 3.0.112(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
+      '@copilotkit/channels-core': 0.9.2(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
+      '@copilotkit/channels-intelligence': 0.9.2(@ag-ui/core@0.0.59)(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)(@opentelemetry/api@1.9.1)(@types/express@4.17.25)(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       '@copilotkit/license-verifier': 0.5.0
       '@copilotkit/shared': 1.70.1(@ag-ui/core@0.0.59)
       '@graphql-yoga/plugin-defer-stream': 3.23.0(graphql-yoga@5.23.0(graphql@16.14.2))(graphql@16.14.2)
       '@hono/node-server': 2.1.9(hono@4.13.19)
       '@langchain/core': 1.2.11(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(ws@8.21.3)
-      '@modelcontextprotocol/sdk': 1.32.2(@cfworker/json-schema@4.1.1)(supports-color@8.1.1)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@modelcontextprotocol/sdk': 1.32.2(@cfworker/json-schema@4.1.1)(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)(supports-color@8.1.1)
       '@remix-run/node-fetch-server': 0.13.3
       '@scarf/scarf': 1.4.0
       '@segment/analytics-node': 2.3.0
       '@types/cors': 2.8.19
       '@types/express': 4.17.25
-      ai: 6.0.282(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      ai: 6.0.282(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
       clarinet: 0.12.6
       class-transformer: 0.5.1
       class-validator: 0.14.4
@@ -7481,7 +7497,7 @@ snapshots:
       type-graphql: 2.0.0-rc.1(class-validator@0.14.4)(graphql-scalars@2.0.1(graphql@16.14.2))(graphql@16.14.2)
       uuid: 11.1.1
       ws: 8.21.3
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
     optionalDependencies:
       '@anthropic-ai/sdk': 0.97.1(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928))
       '@langchain/langgraph-sdk': 1.11.0(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(ws@8.21.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -7513,8 +7529,8 @@ snapshots:
       graphql: 16.14.2
       partial-json: 0.1.7
       uuid: 11.1.1
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
-      zod-to-json-schema: 3.25.2(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
+      zod-to-json-schema: 3.25.2(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
     transitivePeerDependencies:
       - encoding
 
@@ -7529,8 +7545,8 @@ snapshots:
       graphql: 16.14.2
       partial-json: 0.1.7
       uuid: 11.1.1
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
-      zod-to-json-schema: 3.25.2(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
+      zod-to-json-schema: 3.25.2(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
     transitivePeerDependencies:
       - encoding
 
@@ -8178,7 +8194,7 @@ snapshots:
       langsmith: 0.10.3(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(ws@8.21.3)
       mustache: 4.2.0
       p-queue: 6.6.2
-      zod: 4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@opentelemetry/exporter-trace-otlp-proto'
@@ -8201,14 +8217,14 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
-  '@langchain/langgraph@1.4.15(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(ws@8.21.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928))':
+  '@langchain/langgraph@1.4.15(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(ws@8.21.3))(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
       '@langchain/core': 1.2.11(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(ws@8.21.3)
       '@langchain/langgraph-checkpoint': 1.1.5(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(ws@8.21.3))
       '@langchain/langgraph-sdk': 1.11.0(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(ws@8.21.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@langchain/protocol': 0.0.19
       '@standard-schema/spec': 1.1.0
-      zod: 4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
     transitivePeerDependencies:
       - react
       - react-dom
@@ -8233,7 +8249,7 @@ snapshots:
 
   '@microsoft/agents-activity@1.8.1':
     dependencies:
-      zod: 3.25.75(patch_hash=38a29cf2dd5e64b737390c4b69a5ba31a1d8bd7283ab8d847ffb96c07bff60ef)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
   '@microsoft/agents-hosting@1.8.1(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
@@ -8243,7 +8259,7 @@ snapshots:
       '@microsoft/agents-telemetry': 1.8.1(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       jsonwebtoken: 9.0.3
       jwks-rsa: 4.0.1(supports-color@8.1.1)
-      zod: 3.25.75(patch_hash=38a29cf2dd5e64b737390c4b69a5ba31a1d8bd7283ab8d847ffb96c07bff60ef)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@opentelemetry/api-logs'
@@ -8268,7 +8284,7 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
-  '@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@8.1.1)(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))':
+  '@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)(supports-color@8.1.1)':
     dependencies:
       '@hono/node-server': 2.1.9(hono@4.13.19)
       ajv: 8.20.0
@@ -8285,8 +8301,8 @@ snapshots:
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
-      zod-to-json-schema: 3.25.2(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
+      zod-to-json-schema: 3.25.2(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
     optionalDependencies:
       '@cfworker/json-schema': 4.1.1
     transitivePeerDependencies:
@@ -8317,6 +8333,10 @@ snapshots:
       - supports-color
 
   '@noble/hashes@1.8.0': {}
+
+  '@openfuse/zod-v3-compat@file:packages/zod-v3-compat':
+    dependencies:
+      zod: 4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)
 
   '@opentelemetry/api@1.9.1': {}
 
@@ -9349,13 +9369,13 @@ snapshots:
 
   agent-cli-detector@0.1.7: {}
 
-  ai@6.0.282(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)):
+  ai@6.0.282(@openfuse/zod-v3-compat@file:packages/zod-v3-compat):
     dependencies:
-      '@ai-sdk/gateway': 3.0.193(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@ai-sdk/gateway': 3.0.193(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
       '@ai-sdk/provider': 3.0.16
-      '@ai-sdk/provider-utils': 4.0.51(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4))
+      '@ai-sdk/provider-utils': 4.0.51(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)
       '@opentelemetry/api': 1.9.1
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
   ajv-formats@3.0.1(ajv@8.20.0):
     optionalDependencies:
@@ -11241,10 +11261,10 @@ snapshots:
   langchain@1.5.11(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(ws@8.21.3))(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(ws@8.21.3):
     dependencies:
       '@langchain/core': 1.2.11(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(ws@8.21.3)
-      '@langchain/langgraph': 1.4.15(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(ws@8.21.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928))
+      '@langchain/langgraph': 1.4.15(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(ws@8.21.3))(@openfuse/zod-v3-compat@file:packages/zod-v3-compat)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@langchain/langgraph-checkpoint': 1.1.5(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(ws@8.21.3))
       langsmith: 0.10.3(@opentelemetry/api@1.9.1)(openai@6.49.0(ws@8.21.3)(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)))(ws@8.21.3)
-      zod: 4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@opentelemetry/exporter-trace-otlp-proto'
@@ -13990,17 +14010,13 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod-to-json-schema@3.25.2(zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)):
+  zod-to-json-schema@3.25.2(@openfuse/zod-v3-compat@file:packages/zod-v3-compat):
     dependencies:
-      zod: 3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4)
+      zod: '@openfuse/zod-v3-compat@file:packages/zod-v3-compat'
 
   zod-to-json-schema@3.25.2(zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)):
     dependencies:
       zod: 4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928)
-
-  zod@3.25.75(patch_hash=38a29cf2dd5e64b737390c4b69a5ba31a1d8bd7283ab8d847ffb96c07bff60ef): {}
-
-  zod@3.25.76(patch_hash=fb69ea9d3737e2a2b53ad575457ab3980975542d5822b0d08171203e8b1446c4): {}
 
   zod@4.6.7(patch_hash=d41c1002449db05aaffaedfd3a5b9683fa34cf58476a92f7fda9707e58ddd928): {}
 

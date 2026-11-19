@@ -1,0 +1,43 @@
+{
+  "name": "@openfuse/zod-v3-compat",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "types": "./index.d.cts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": "./index.js",
+      "require": "./index.cjs"
+    },
+    "./v3": {
+      "import": "./index.js",
+      "require": "./index.cjs"
+    },
+    "./v4": {
+      "import": "./v4.js",
+      "require": "./v4.cjs"
+    },
+    "./v4/core": {
+      "import": "./v4-core.js",
+      "require": "./v4-core.cjs"
+    },
+    "./v4/mini": {
+      "import": "./v4-mini.js",
+      "require": "./v4-mini.cjs"
+    },
+    "./v4-mini": {
+      "import": "./v4-mini.js",
+      "require": "./v4-mini.cjs"
+    },
+    "./v4/locales": {
+      "import": "./v4-locales.js",
+      "require": "./v4-locales.cjs"
+    }
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  }
+}
