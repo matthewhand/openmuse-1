@@ -31,10 +31,10 @@ overrides:
   'undici@<6.29.1': '6.29.1'
   'e2b>undici8': 'npm:undici@8.12.2'
   'postcss@>=8 <8.5.18': '8.5.33'
+  # Serve legacy imports through the patched v3 API bundled with published Zod 4.
+  'zod@<4.0.0': 'file:./packages/zod-v3-compat'
 
 patchedDependencies:
   metro@0.83.3: patches/metro@0.83.3.patch
-  # Backport upstream collection bounds for the legacy Zod runtimes (CVE-2023-54404).
-  zod@3.25.75: patches/zod-3.25.75-collection-bounds.patch
-  zod@3.25.76: patches/zod-3.25.76-collection-bounds.patch
+  # Backport upstream collection bounds for the bundled v3 API (CVE-2023-54404).
   zod@4.6.7: patches/zod-4.6.7-legacy-collection-bounds.patch
